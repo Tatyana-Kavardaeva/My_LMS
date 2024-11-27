@@ -1,15 +1,12 @@
-from django.core.serializers import serialize
-from rest_framework import generics, status, viewsets
-from rest_framework.response import Response
-from rest_framework.permissions import IsAuthenticated
-from .models import Test, Question, Answer
-from .serializers import TestSerializer, QuestionSerializer
+from rest_framework import generics, viewsets
+from tests.models import Test, Question, Answer, StudentAnswer, TestResult
+from tests.serializers import TestSerializer, QuestionSerializer, AnswerSerializer, StudentAnswerSerializer, \
+    TestResultSerializer
 
 
 class TestViewSet(viewsets.ModelViewSet):
     queryset = Test.objects.all()
     serializer_class = TestSerializer
-    # permission_classes = [IsAuthenticated]
 
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
@@ -22,29 +19,59 @@ class QuestionViewSet(viewsets.ModelViewSet):
     def perform_create(self, serializer):
         serializer.save(owner=self.request.user)
 
-    def get_queryset(self):
-        test_id = self.kwargs['test_id']
-        return Question.objects.filter(test_id=test_id)
+class AnswerViewSet(viewsets.ModelViewSet):
+    queryset = Answer.objects.all()
+    serializer_class = AnswerSerializer
+
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
 
 
-class QuestionAnswerView(generics.CreateAPIView):
-    def post(self, request, *args, **kwargs):
-        answers_data = request.data
-        correct_answers_count = 0
-        for answer_data in answers_data:
-            question_id = answer_data.get("question_id")
-            answer_ids = answer_data.get("answer_ids")
+class StudentAnswerCreateAPIView(generics.CreateAPIView):
+    queryset = StudentAnswer.objects.all()
+    serializer_class = StudentAnswerSerializer
 
-            correct_answers = Answer.objects.filter(
-                id__in=answer_ids,
-                question_id=question_id,
-                is_correct=True
-            )
+    def perform_create(self, serializer):
+        serializer.save(student=self.request.user)
 
-            # Если количество правильных ответов совпадает с выбранными, засчитываем.
-            if correct_answers.count() == len(answer_ids):
-                correct_answers_count += 1
 
-        return Response({
-            'message': f'Вы ответили правильно на {correct_answers_count} из {len(answers_data)} вопросов.'
-        })
+class TestResultListCreateAPIView(generics.ListCreateAPIView):
+    queryset = TestResult.objects.all()
+    serializer_class = TestResultSerializer
+
+    def perform_create(self, serializer):
+        result = serializer.save(student=self.request.user)
+
+        test_id = result.test.pk
+        count_questions = Question.objects.filter(test=test_id).count()
+        count_right_answers = 0
+        score = ""
+        student_answers = StudentAnswer.objects.filter(student=result.student, question__test=test_id)
+
+        for student_answer in student_answers:
+
+            if student_answer.answer.is_correct is True:
+                count_right_answers += 1
+
+        percent = count_right_answers / count_questions * 100
+
+        if 0 <= percent < 35:
+            score = "d"
+        elif 35 <= percent < 70:
+            score = "c"
+        elif 70 <= percent < 90:
+            score = "b"
+        elif 90 <= percent <= 100:
+            score = "a"
+
+        result.count_questions = count_questions
+        result.count_right_answers = count_right_answers
+        result.test = result.test
+        result.score = score
+
+        result.save()
+
+
+class TestResultDetailAPIView(generics.RetrieveAPIView):
+    queryset = TestResult.objects.all()
+    serializer_class = TestResultSerializer
