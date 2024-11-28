@@ -1,33 +1,45 @@
-from rest_framework.permissions import IsAuthenticatedOrReadOnly
-from rest_framework.response import Response
-from rest_framework.views import APIView
-from rest_framework.viewsets import ModelViewSet
+from rest_framework import viewsets
+from rest_framework.permissions import AllowAny, IsAuthenticated
 from users.models import User
-from users.serializers import UserSerializer
-from users.serializers import RegistrationSerializer
-from rest_framework.permissions import AllowAny
+from users.serializers import UserSerializer, RegisterSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
+
+from users.permissions import IsAdmin, IsUser
+
+from users.serializers import CustomTokenObtainPairSerializer
 
 
-class UserViewSet(ModelViewSet):
+class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
-    serializer_class = UserSerializer
 
-    # def get_permissions(self):
-    #     if self.request.method == 'POST':
-    #         return [AllowAny()]
-    #     else:
-    #         return [IsAuthenticatedOrReadOnly()]
+    def get_serializer_class(self):
+        if self.action == 'create':
+            return RegisterSerializer
+        return UserSerializer
+
+    def perform_create(self, serializer):
+        user = serializer.save(is_active=True)
+        user.set_password(user.password)
+        user.save()
+
+    # def perform_update(self, serializer):
+    #     user = serializer.save()
+    #     if user.groups.filter(name='Teacher').exists() or user.groups.filter(name='Admin').exists():
+    #         user.is_staff = True
+    #         user.save()
+
+    def get_permissions(self):
+        """ Разрешения для разных действий """
+        if self.action == 'create':
+            return [AllowAny()]
+        elif self.action == 'list' or self.action == 'destroy':
+            return [IsAdmin()]
+        elif self.action in ['retrieve', 'update']:
+            if self.request.user.groups.filter(name='Admin').exists():
+                return [IsAdmin()]
+            return [IsUser()]
+        return [IsAuthenticated()]
 
 
-class RegistrationView(APIView):
-    permission_classes = [AllowAny]
-
-    def post(self, request):
-        serializer = RegistrationSerializer(data=request.data)
-        if serializer.is_valid():
-            user = serializer.save()
-            return Response({
-                "message": "Пользователь успешно зарегистрирован",
-                "user": serializer.data
-            })
-        return Response(serializer.errors)
+class CustomTokenObtainPairView(TokenObtainPairView):
+    serializer_class = CustomTokenObtainPairSerializer
