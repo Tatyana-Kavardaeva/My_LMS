@@ -2,34 +2,42 @@ from rest_framework import generics, viewsets
 from tests.models import Test, Question, Answer, StudentAnswer, TestResult
 from tests.serializers import TestSerializer, QuestionSerializer, AnswerSerializer, StudentAnswerSerializer, \
     TestResultSerializer
+from users.permissions import IsAdmin, IsTeacher, IsOwner, IsStudent
 
 
-class TestViewSet(viewsets.ModelViewSet):
+class CustomModelViewSet(viewsets.ModelViewSet):
+    def perform_create(self, serializer):
+        serializer.save(owner=self.request.user)
+
+    def get_permissions(self):
+        if self.action == 'create':
+            self.permission_classes = [IsAdmin | IsTeacher]
+        elif self.action in ['update', 'partial_update', 'destroy']:
+            self.permission_classes = [IsAdmin | IsOwner]
+        elif self.action in ['list', 'retrieve']:
+            self.permission_classes = [IsAdmin | IsStudent | IsOwner]
+        return super().get_permissions()
+
+
+class TestViewSet(CustomModelViewSet):
     queryset = Test.objects.all()
     serializer_class = TestSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
 
-
-class QuestionViewSet(viewsets.ModelViewSet):
+class QuestionViewSet(CustomModelViewSet):
     queryset = Question.objects.all()
     serializer_class = QuestionSerializer
 
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
 
-class AnswerViewSet(viewsets.ModelViewSet):
+class AnswerViewSet(CustomModelViewSet):
     queryset = Answer.objects.all()
     serializer_class = AnswerSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
 
 
 class StudentAnswerCreateAPIView(generics.CreateAPIView):
     queryset = StudentAnswer.objects.all()
     serializer_class = StudentAnswerSerializer
+    permission_classes = [IsStudent]
 
     def perform_create(self, serializer):
         serializer.save(student=self.request.user)
@@ -38,6 +46,28 @@ class StudentAnswerCreateAPIView(generics.CreateAPIView):
 class TestResultListCreateAPIView(generics.ListCreateAPIView):
     queryset = TestResult.objects.all()
     serializer_class = TestResultSerializer
+
+    def get_permissions(self):
+        if self.request.method == 'POST':
+            self.permission_classes = [IsStudent]
+        elif self.request.method == 'GET':
+            if self.request.user.groups.filter(name='Student').exists():
+                self.permission_classes = [IsStudent]
+            elif self.request.user.groups.filter(name='IsAdmin').exists():
+                self.permission_classes = [IsAdmin]
+            elif self.request.user.groups.filter(name='Teacher').exists():
+                self.permission_classes = [IsTeacher]
+
+        return super().get_permissions()
+
+    def get_queryset(self):
+        if self.request.user.groups.filter(name='Admin').exists():
+            return TestResult.objects.all()
+        elif self.request.user.groups.filter(name='Student').exists():
+            return TestResult.objects.filter(student=self.request.user)
+        elif self.request.user.groups.filter(name='Teacher').exists():
+            return TestResult.objects.filter(test__owner=self.request.user)
+        return TestResult.objects.none()
 
     def perform_create(self, serializer):
         result = serializer.save(student=self.request.user)
@@ -75,3 +105,4 @@ class TestResultListCreateAPIView(generics.ListCreateAPIView):
 class TestResultDetailAPIView(generics.RetrieveAPIView):
     queryset = TestResult.objects.all()
     serializer_class = TestResultSerializer
+    permission_classes = [IsStudent | IsAdmin]
