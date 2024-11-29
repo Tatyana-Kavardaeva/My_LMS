@@ -6,8 +6,8 @@ from rest_framework import serializers
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ('id', 'email', 'first_name', 'last_name', 'phone', 'avatar', 'groups')
-        read_only_fields = ('groups',)
+        fields = ('id', 'email', 'first_name', 'last_name', 'role', 'phone', 'avatar')
+        read_only_fields = ('role',)
 
 
 class RegisterSerializer(serializers.ModelSerializer):
@@ -15,7 +15,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = '__all__'
+        fields = ('email', 'password', 'role')
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):

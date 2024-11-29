@@ -3,6 +3,11 @@ from django.db import models
 
 
 NULLABLE = {"blank": True, "null": True}
+ROLES = [
+    ('admin', 'Администратор'),
+    ('teacher', 'Преподаватель'),
+    ('student', 'Студент'),
+]
 
 
 class User(AbstractUser):
@@ -12,6 +17,8 @@ class User(AbstractUser):
     first_name = models.CharField(max_length=50, verbose_name="Имя", **NULLABLE)
     last_name = models.CharField(max_length=50, verbose_name="Фамилия", **NULLABLE)
     avatar = models.ImageField(upload_to="users/avatars", blank=True, null=True, verbose_name="Аватар")
+
+    role = models.CharField(choices=ROLES, verbose_name="Роль", **NULLABLE, default="student")
 
     tg_chat_id = models.CharField(max_length=50, verbose_name="Телеграм chat-id", **NULLABLE)
 

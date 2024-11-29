@@ -1,8 +1,11 @@
 from rest_framework import generics, viewsets
+from rest_framework.exceptions import PermissionDenied
+
 from tests.models import Test, Question, Answer, StudentAnswer, TestResult
 from tests.serializers import TestSerializer, QuestionSerializer, AnswerSerializer, StudentAnswerSerializer, \
     TestResultSerializer
-from users.permissions import IsAdmin, IsTeacher, IsOwner, IsStudent
+from users.permissions import IsAdmin, IsTeacher, IsStudent
+from tests.servicees import calculate_score
 
 
 class CustomModelViewSet(viewsets.ModelViewSet):
@@ -10,12 +13,15 @@ class CustomModelViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     def get_permissions(self):
+        if not self.request.user.role:
+            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
+
         if self.action == 'create':
             self.permission_classes = [IsAdmin | IsTeacher]
         elif self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsAdmin | IsOwner]
+            self.permission_classes = [IsAdmin | IsTeacher]
         elif self.action in ['list', 'retrieve']:
-            self.permission_classes = [IsAdmin | IsStudent | IsOwner]
+            self.permission_classes = [IsAdmin | IsStudent | IsTeacher]
         return super().get_permissions()
 
 
@@ -48,61 +54,57 @@ class TestResultListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = TestResultSerializer
 
     def get_permissions(self):
+        if not self.request.user.role:
+            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
+
         if self.request.method == 'POST':
             self.permission_classes = [IsStudent]
         elif self.request.method == 'GET':
-            if self.request.user.groups.filter(name='Student').exists():
+            if self.request.user.role == "student":
                 self.permission_classes = [IsStudent]
-            elif self.request.user.groups.filter(name='IsAdmin').exists():
+            elif self.request.user.role == "admin":
                 self.permission_classes = [IsAdmin]
-            elif self.request.user.groups.filter(name='Teacher').exists():
+            elif self.request.user.role == "teacher":
                 self.permission_classes = [IsTeacher]
 
         return super().get_permissions()
 
     def get_queryset(self):
-        if self.request.user.groups.filter(name='Admin').exists():
+        if self.request.user.role == "admin":
             return TestResult.objects.all()
-        elif self.request.user.groups.filter(name='Student').exists():
+        elif self.request.user.role == "student":
             return TestResult.objects.filter(student=self.request.user)
-        elif self.request.user.groups.filter(name='Teacher').exists():
+        elif self.request.user.role == "teacher":
             return TestResult.objects.filter(test__owner=self.request.user)
         return TestResult.objects.none()
 
     def perform_create(self, serializer):
         result = serializer.save(student=self.request.user)
-
-        test_id = result.test.pk
-        count_questions = Question.objects.filter(test=test_id).count()
-        count_right_answers = 0
-        score = ""
-        student_answers = StudentAnswer.objects.filter(student=result.student, question__test=test_id)
-
-        for student_answer in student_answers:
-
-            if student_answer.answer.is_correct is True:
-                count_right_answers += 1
-
-        percent = count_right_answers / count_questions * 100
-
-        if 0 <= percent < 35:
-            score = "d"
-        elif 35 <= percent < 70:
-            score = "c"
-        elif 70 <= percent < 90:
-            score = "b"
-        elif 90 <= percent <= 100:
-            score = "a"
-
-        result.count_questions = count_questions
-        result.count_right_answers = count_right_answers
-        result.test = result.test
-        result.score = score
-
-        result.save()
+        calculate_score(result)
 
 
 class TestResultDetailAPIView(generics.RetrieveAPIView):
     queryset = TestResult.objects.all()
     serializer_class = TestResultSerializer
-    permission_classes = [IsStudent | IsAdmin]
+
+    def get_permissions(self):
+        if not self.request.user.role:
+            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
+
+        if self.request.method == 'GET' and self.request.user.role == "student":
+            self.permission_classes = [IsStudent]
+        elif self.request.method == 'GET' and self.request.user.groups.filter(name='IsAdmin').exists():
+            self.permission_classes = [IsAdmin]
+        elif self.request.method == 'GET' and self.request.user.groups.filter(name='Teacher').exists():
+            self.permission_classes = [IsTeacher]
+
+        return super().get_permissions()
+
+    # def get(self, request, *args, **kwargs):
+    #     if self.request.user.groups.filter(name='Admin').exists():
+    #         return TestResult.objects.all()
+    #     elif self.request.user.groups.filter(name='Student').exists():
+    #         return TestResult.objects.filter(student=self.request.user)
+    #     elif self.request.user.groups.filter(name='Teacher').exists():
+    #         return TestResult.objects.filter(test__owner=self.request.user)
+    #     return TestResult.objects.none()

@@ -32,11 +32,9 @@ class UserViewSet(viewsets.ModelViewSet):
         """ Разрешения для разных действий """
         if self.action == 'create':
             return [AllowAny()]
-        elif self.action == 'list' or self.action == 'destroy':
+        elif self.action in ['list', 'destroy', 'retrieve', 'update', 'partial_update']:
             return [IsAdmin()]
-        elif self.action in ['retrieve', 'update']:
-            if self.request.user.groups.filter(name='Admin').exists():
-                return [IsAdmin()]
+        elif self.action in ['retrieve', 'update', 'partial_update']:
             return [IsUser()]
         return [IsAuthenticated()]
 
