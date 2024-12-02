@@ -1,15 +1,22 @@
-from rest_framework import viewsets
-from materials.models import Course, Module, Lesson
-from materials.serializers import CourseSerializer, ModuleSerializer, LessonSerializer
-from users.permissions import IsAdmin, IsOwner, IsStudent, IsTeacher
+# from rest_framework import viewsets
+# from rest_framework.exceptions import PermissionDenied
+from django.contrib.admin import action
+from rest_framework.exceptions import PermissionDenied
+from rest_framework.generics import get_object_or_404
+from rest_framework.response import Response
+from rest_framework.views import APIView
+
+from materials.models import Course, Module, Lesson, Enrollment
+from materials.pagination import MyPagination
+from materials.serializers import CourseSerializer, ModuleSerializer, LessonSerializer, EnrollmentSerializer
+from tests.views import CustomModelViewSet
+from users.permissions import IsStudent, IsAdmin, IsTeacher
 
 
-class CourseViewSet(viewsets.ModelViewSet):
+class CourseViewSet(CustomModelViewSet):
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
-
-    def perform_create(self, serializer):
-        serializer.save(owner=self.request.user)
+    pagination_class = MyPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -17,19 +24,11 @@ class CourseViewSet(viewsets.ModelViewSet):
             return Course.objects.all()  # Администраторы видят все курсы
         return Course.objects.filter(owner=user)  # Преподаватели видят только свои курсы
 
-    def get_permissions(self):
-        if self.action == 'create':
-            self.permission_classes = [IsAdmin | IsTeacher]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsAdmin | IsTeacher]
-        elif self.action in ['list', 'retrieve']:
-            self.permission_classes = [IsAdmin | IsStudent | IsTeacher]
-        return super().get_permissions()
 
-
-class ModuleViewSet(viewsets.ModelViewSet):
+class ModuleViewSet(CustomModelViewSet):
     queryset = Module.objects.all()
     serializer_class = ModuleSerializer
+    pagination_class = MyPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -37,19 +36,11 @@ class ModuleViewSet(viewsets.ModelViewSet):
             return Module.objects.all()  # Администраторы видят все курсы
         return Module.objects.filter(owner=user)  # Преподаватели видят только свои курсы
 
-    def get_permissions(self):
-        if self.action == 'create':
-            self.permission_classes = [IsAdmin | IsTeacher]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsAdmin | IsTeacher]
-        elif self.action in ['list', 'retrieve']:
-            self.permission_classes = [IsAdmin | IsStudent | IsTeacher]
-        return super().get_permissions()
 
-
-class LessonViewSet(viewsets.ModelViewSet):
+class LessonViewSet(CustomModelViewSet):
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
+    pagination_class = MyPagination
 
     def get_queryset(self):
         user = self.request.user
@@ -57,11 +48,48 @@ class LessonViewSet(viewsets.ModelViewSet):
             return Lesson.objects.all()  # Администраторы видят все курсы
         return Lesson.objects.filter(owner=user)  # Преподаватели видят только свои курсы
 
+
+class EnrollmentAPIView(APIView):
+    queryset = Enrollment.objects.all()
+    serializer_class = EnrollmentSerializer
+    # permission_classes = [IsAuthenticated]
+
+    def post(self, *args, **kwargs):
+        user = self.request.user
+        course_id = self.request.data.get('course')
+        course_item = get_object_or_404(Course, pk=course_id)
+        enroll_item = Enrollment.objects.filter(student=user, course=course_item)
+
+        if enroll_item.exists():
+            enroll_item.delete()
+            message = 'Вы отчислились с курса'
+        else:
+            Enrollment.objects.create(student=user, course=course_item)
+            message = 'Вы зачислены на курс'
+
+        return Response({"message": message})
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        if user.role == 'admin':
+            queryset = Enrollment.objects.all()  # Администраторы видят все зачисления
+        elif user.role == 'student':
+            queryset = Enrollment.objects.filter(student=user)
+        elif user.role == 'teacher':
+            queryset = Enrollment.objects.filter(course__owner=user)
+        else:
+            return Response({"detail": "У вас нет доступа к этому ресурсу."}, status=403)
+
+        # Сериализуем queryset перед отправкой ответа
+        serializer = self.serializer_class(queryset, many=True)
+        return Response(serializer.data)
+
     def get_permissions(self):
-        if self.action == 'create':
-            self.permission_classes = [IsAdmin | IsTeacher]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsAdmin | IsTeacher]
-        elif self.action in ['list', 'retrieve']:
+        if not self.request.user.role:
+            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
+
+        if self.request.method == 'POST':
+            self.permission_classes = [IsStudent]
+        elif self.request.method == 'GET':
             self.permission_classes = [IsAdmin | IsStudent | IsTeacher]
         return super().get_permissions()

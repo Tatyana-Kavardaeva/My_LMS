@@ -1,5 +1,6 @@
 from rest_framework import serializers
-from materials.models import Course, Module, Lesson
+from materials.models import Course, Module, Lesson, Enrollment
+from materials.validators import TitleValidator
 
 
 class CourseSerializer(serializers.ModelSerializer):
@@ -15,8 +16,12 @@ class CourseSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Course
-        fields = ('id', 'title', 'owner', 'count_modules', 'modules')
+        fields = ('id', 'title', 'owner', 'description', 'count_modules', 'modules')
         read_only_fields = ('owner',)
+        validators = [
+            TitleValidator('title'),
+            serializers.UniqueTogetherValidator(fields=["title"], queryset=Course.objects.all())
+        ]
 
 
 class ModuleSerializer(serializers.ModelSerializer):
@@ -34,6 +39,7 @@ class ModuleSerializer(serializers.ModelSerializer):
         model = Module
         fields = '__all__'
         read_only_fields = ('owner',)
+        validators = [TitleValidator('title')]
 
 
 class LessonSerializer(serializers.ModelSerializer):
@@ -41,3 +47,11 @@ class LessonSerializer(serializers.ModelSerializer):
         model = Lesson
         fields = '__all__'
         read_only_fields = ('owner',)
+        validators = [TitleValidator('title')]
+
+
+class EnrollmentSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Enrollment
+        fields = '__all__'
+        read_only_fields = ('student',)

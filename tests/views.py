@@ -1,6 +1,7 @@
 from rest_framework import generics, viewsets
 from rest_framework.exceptions import PermissionDenied
 
+from materials.pagination import MyPagination
 from tests.models import Test, Question, Answer, StudentAnswer, TestResult
 from tests.serializers import TestSerializer, QuestionSerializer, AnswerSerializer, StudentAnswerSerializer, \
     TestResultSerializer
@@ -28,6 +29,7 @@ class CustomModelViewSet(viewsets.ModelViewSet):
 class TestViewSet(CustomModelViewSet):
     queryset = Test.objects.all()
     serializer_class = TestSerializer
+    pagination_class = MyPagination
 
 
 class QuestionViewSet(CustomModelViewSet):

@@ -1,4 +1,5 @@
 from rest_framework import viewsets
+from rest_framework.decorators import permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from users.models import User
 from users.serializers import UserSerializer, RegisterSerializer
@@ -7,6 +8,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from users.permissions import IsAdmin, IsUser
 
 from users.serializers import CustomTokenObtainPairSerializer
+
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -18,6 +20,7 @@ class UserViewSet(viewsets.ModelViewSet):
         return UserSerializer
 
     def perform_create(self, serializer):
+
         user = serializer.save(is_active=True)
         user.set_password(user.password)
         user.save()

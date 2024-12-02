@@ -2,6 +2,8 @@ from users.models import User
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework import serializers
 
+from users.validators import AdminRequiredValidator
+
 
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
@@ -16,6 +18,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('email', 'password', 'role')
+        validators = [AdminRequiredValidator('role')]
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
