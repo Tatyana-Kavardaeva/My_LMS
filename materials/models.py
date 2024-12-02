@@ -19,9 +19,6 @@ class Course(models.Model):
         verbose_name = "Курс"
         verbose_name_plural = "Курсы"
         ordering = ['pk']
-        constraints = [
-            models.UniqueConstraint(fields=['title', 'owner'], name='unique_course_owner')
-        ]
 
 
 class Module(models.Model):
@@ -39,9 +36,6 @@ class Module(models.Model):
         verbose_name = "Модуль"
         verbose_name_plural = "Модули"
         ordering = ['pk']
-        constraints = [
-            models.UniqueConstraint(fields=['title', 'course', 'owner'], name='unique_module_owner')
-        ]
 
 
 class Lesson(models.Model):
@@ -55,10 +49,23 @@ class Lesson(models.Model):
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="lessons", on_delete=models.SET_NULL, **NULLABLE,
                               verbose_name='Владелец')
 
+    def __str__(self):
+        return self.title
+
     class Meta:
         verbose_name = "Урок"
         verbose_name_plural = "Уроки"
         ordering = ['pk']
-        constraints = [
-            models.UniqueConstraint(fields=['title', 'module', 'owner'], name='unique_lesson_owner')
-        ]
+
+
+class Enrollment(models.Model):
+    student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Студент")
+    course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="Курс")
+
+    def __str__(self):
+        return f"{self.student} {self.course}"
+
+    class Meta:
+        verbose_name = "Зачисление на курс"
+        verbose_name_plural = "Зачисления на курс"
+        ordering = ['pk']
