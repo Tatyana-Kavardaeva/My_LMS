@@ -23,6 +23,7 @@ INSTALLED_APPS = [
 
     'rest_framework',
     'rest_framework_simplejwt',
+    'drf_yasg',
 
     'users',
     'materials',
@@ -108,10 +109,9 @@ MEDIA_URL = "media/"
 
 AUTH_USER_MODEL = "users.User"
 
-
 REST_FRAMEWORK = {
     'DEFAULT_AUTHENTICATION_CLASSES': [
-        'rest_framework_simplejwt.authentication.JWTAuthentication', # Настройки JWT-токенов
+        'rest_framework_simplejwt.authentication.JWTAuthentication',  # Настройки JWT-токенов
     ],
     'DEFAULT_PERMISSION_CLASSES': [
         'rest_framework.permissions.IsAuthenticated',
