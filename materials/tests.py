@@ -94,7 +94,8 @@ class CourseTestCase(APITestCase):
                     "description": self.course.description,
                     "owner": self.course.owner.pk,
                     "count_modules": 0,
-                    "modules": []
+                    "modules": [],
+                    'is_enrolled': False
                 }
             ]
         }
