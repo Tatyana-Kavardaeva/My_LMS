@@ -2,8 +2,8 @@
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import get_object_or_404, GenericAPIView
 from rest_framework.response import Response
-from rest_framework.views import APIView
-
+# from rest_framework.views import APIView
+from materials.tasks import send_information_about_enrolling
 from materials.models import Course, Module, Lesson, Enrollment
 from materials.pagination import MyPagination
 from materials.serializers import CourseSerializer, ModuleSerializer, LessonSerializer, EnrollmentSerializer
@@ -21,6 +21,7 @@ class CourseViewSet(CustomModelViewSet):
         if user.role in ['admin', 'student']:
             return Course.objects.all()
         return Course.objects.filter(owner=user)
+
 
 class ModuleViewSet(CustomModelViewSet):
     queryset = Module.objects.all()
@@ -61,7 +62,11 @@ class EnrollmentAPIView(GenericAPIView):
             message = 'Вы отчислились с курса'
         else:
             Enrollment.objects.create(student=user, course=course_item)
+            send_information_about_enrolling.delay(course_item.title, user.first_name, user.email,
+                                                   course_item.owner.email)
             message = 'Вы зачислены на курс'
+            print(course_item.owner.email)
+            print(user.email)
 
         return Response({"message": message})
 

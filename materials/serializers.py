@@ -6,6 +6,7 @@ from materials.validators import TitleValidator
 class CourseSerializer(serializers.ModelSerializer):
     count_modules = serializers.SerializerMethodField(read_only=True)
     modules = serializers.SerializerMethodField(read_only=True)
+    is_enrolled = serializers.SerializerMethodField(read_only=True)
 
     def get_count_modules(self, instance):
         return Module.objects.filter(course=instance).count()
@@ -14,9 +15,13 @@ class CourseSerializer(serializers.ModelSerializer):
         modules = Module.objects.filter(course=instance)
         return ModuleSerializer(modules, many=True).data
 
+    def get_is_enrolled(self, instance):
+        user = self.context['request'].user
+        return Enrollment.objects.filter(student=user, course=instance).exists()
+
     class Meta:
         model = Course
-        fields = ('id', 'title', 'owner', 'description', 'count_modules', 'modules')
+        fields = ('id', 'title', 'owner', 'description', 'count_modules', 'modules', 'is_enrolled')
         read_only_fields = ('owner',)
         validators = [
             TitleValidator('title'),
