@@ -41,14 +41,25 @@ class AnswerSerializer(serializers.ModelSerializer):
 
 
 class StudentAnswerSerializer(serializers.ModelSerializer):
+    is_correct = serializers.SerializerMethodField(read_only=True)
+
+    def get_is_correct(self, instance):
+        return Answer.objects.get(pk=instance.answer.pk).is_correct
+
     class Meta:
         model = StudentAnswer
-        fields = ('pk', 'student', 'question', 'answer')
+        fields = ('pk', 'student', 'question', 'answer', 'is_correct')
         read_only_fields = ('student',)
 
 
 class TestResultSerializer(serializers.ModelSerializer):
+    student_answers = serializers.SerializerMethodField(read_only=True)
+
+    def get_student_answers(self, instance):
+        student_answers = StudentAnswer.objects.filter(student=instance.student)
+        return StudentAnswerSerializer(student_answers, many=True).data
+
     class Meta:
         model = TestResult
         fields = '__all__'
-        read_only_fields = ('student', 'count_questions', 'count_right_answers', 'score')
+        read_only_fields = ('student', 'count_questions', 'count_right_answers', 'score', 'student_answers')
