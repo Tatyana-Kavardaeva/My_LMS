@@ -10,7 +10,6 @@ from users.permissions import IsAdmin, IsUser
 from users.serializers import CustomTokenObtainPairSerializer
 
 
-
 class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
 

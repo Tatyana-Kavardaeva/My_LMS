@@ -1,4 +1,3 @@
-# from django.urls import path
 from django.urls import path
 from rest_framework.routers import SimpleRouter
 
@@ -13,5 +12,5 @@ router.register('modules', ModuleViewSet)
 router.register('lessons', LessonViewSet)
 
 urlpatterns = [
-    path('enrollment/', EnrollmentAPIView.as_view(), name='enrollment'),
+    path('enrollment/', EnrollmentAPIView.as_view(), name='enrollment-create'),
 ] + router.urls

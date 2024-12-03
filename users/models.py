@@ -16,9 +16,9 @@ class User(AbstractUser):
     phone = models.CharField(max_length=35, verbose_name="Телефон", **NULLABLE)
     first_name = models.CharField(max_length=50, verbose_name="Имя", **NULLABLE)
     last_name = models.CharField(max_length=50, verbose_name="Фамилия", **NULLABLE)
-    avatar = models.ImageField(upload_to="users/avatars", blank=True, null=True, verbose_name="Аватар")
+    avatar = models.ImageField(upload_to="users/avatars", verbose_name="Аватар", **NULLABLE)
 
-    role = models.CharField(choices=ROLES, verbose_name="Роль", **NULLABLE, default="student")
+    role = models.CharField(choices=ROLES, verbose_name="Роль", **NULLABLE)
 
     tg_chat_id = models.CharField(max_length=50, verbose_name="Телеграм chat-id", **NULLABLE)
 

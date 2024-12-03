@@ -1,8 +1,6 @@
-# from rest_framework import viewsets
-# from rest_framework.exceptions import PermissionDenied
-from django.contrib.admin import action
+# from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.generics import get_object_or_404
+from rest_framework.generics import get_object_or_404, GenericAPIView
 from rest_framework.response import Response
 from rest_framework.views import APIView
 
@@ -21,9 +19,8 @@ class CourseViewSet(CustomModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.role in ['admin', 'student']:
-            return Course.objects.all()  # Администраторы видят все курсы
-        return Course.objects.filter(owner=user)  # Преподаватели видят только свои курсы
-
+            return Course.objects.all()
+        return Course.objects.filter(owner=user)
 
 class ModuleViewSet(CustomModelViewSet):
     queryset = Module.objects.all()
@@ -33,8 +30,8 @@ class ModuleViewSet(CustomModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.role in ['admin', 'student']:
-            return Module.objects.all()  # Администраторы видят все курсы
-        return Module.objects.filter(owner=user)  # Преподаватели видят только свои курсы
+            return Module.objects.all()
+        return Module.objects.filter(owner=user)
 
 
 class LessonViewSet(CustomModelViewSet):
@@ -45,18 +42,17 @@ class LessonViewSet(CustomModelViewSet):
     def get_queryset(self):
         user = self.request.user
         if user.role in ['admin', 'student']:
-            return Lesson.objects.all()  # Администраторы видят все курсы
-        return Lesson.objects.filter(owner=user)  # Преподаватели видят только свои курсы
+            return Lesson.objects.all()
+        return Lesson.objects.filter(owner=user)
 
 
-class EnrollmentAPIView(APIView):
+class EnrollmentAPIView(GenericAPIView):
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
-    # permission_classes = [IsAuthenticated]
 
-    def post(self, *args, **kwargs):
-        user = self.request.user
-        course_id = self.request.data.get('course')
+    def post(self, request, *args, **kwargs):
+        user = request.user
+        course_id = request.data.get('course')
         course_item = get_object_or_404(Course, pk=course_id)
         enroll_item = Enrollment.objects.filter(student=user, course=course_item)
 
@@ -72,7 +68,7 @@ class EnrollmentAPIView(APIView):
     def get(self, request, *args, **kwargs):
         user = request.user
         if user.role == 'admin':
-            queryset = Enrollment.objects.all()  # Администраторы видят все зачисления
+            queryset = Enrollment.objects.all()
         elif user.role == 'student':
             queryset = Enrollment.objects.filter(student=user)
         elif user.role == 'teacher':
@@ -85,11 +81,15 @@ class EnrollmentAPIView(APIView):
         return Response(serializer.data)
 
     def get_permissions(self):
+        # Проверяем, есть ли у пользователя роль
         if not self.request.user.role:
             raise PermissionDenied("У вас нет доступа к этому ресурсу.")
 
         if self.request.method == 'POST':
+            # Для POST разрешаем доступ только студентам
             self.permission_classes = [IsStudent]
         elif self.request.method == 'GET':
+            # Для GET разрешаем доступ admin, student, teacher
             self.permission_classes = [IsAdmin | IsStudent | IsTeacher]
+
         return super().get_permissions()

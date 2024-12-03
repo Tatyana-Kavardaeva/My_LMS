@@ -1,5 +1,7 @@
+from pyexpat.errors import messages
 from rest_framework import generics, viewsets
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.response import Response
 
 from materials.pagination import MyPagination
 from tests.models import Test, Question, Answer, StudentAnswer, TestResult
@@ -17,10 +19,10 @@ class CustomModelViewSet(viewsets.ModelViewSet):
         if not self.request.user.role:
             raise PermissionDenied("У вас нет доступа к этому ресурсу.")
 
-        if self.action == 'create':
+        if self.action in ['create', 'update', 'partial_update', 'destroy']:
             self.permission_classes = [IsAdmin | IsTeacher]
-        elif self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [IsAdmin | IsTeacher]
+        # elif self.action in ['update', 'partial_update', 'destroy']:
+        #     self.permission_classes = [IsAdmin | IsTeacher]
         elif self.action in ['list', 'retrieve']:
             self.permission_classes = [IsAdmin | IsStudent | IsTeacher]
         return super().get_permissions()
@@ -102,11 +104,21 @@ class TestResultDetailAPIView(generics.RetrieveAPIView):
 
         return super().get_permissions()
 
-    # def get(self, request, *args, **kwargs):
-    #     if self.request.user.groups.filter(name='Admin').exists():
-    #         return TestResult.objects.all()
-    #     elif self.request.user.groups.filter(name='Student').exists():
-    #         return TestResult.objects.filter(student=self.request.user)
-    #     elif self.request.user.groups.filter(name='Teacher').exists():
-    #         return TestResult.objects.filter(test__owner=self.request.user)
-    #     return TestResult.objects.none()
+    def retrieve(self, request, *args, **kwargs):
+        result = self.get_object()
+
+        if self.request.user.role == "student":
+            if result.student != self.request.user:
+                raise PermissionDenied("У вас нет доступа к этому результату.")
+
+        elif self.request.user.role == "teacher":
+            if result.test.owner != self.request.user:
+                raise PermissionDenied("У вас нет доступа к этому результату.")
+
+        elif self.request.user.groups.filter(name='Admin').exists():
+            pass
+        else:
+            raise PermissionDenied("У вас нет прав для просмотра.")
+
+        serializer = self.get_serializer(result)
+        return Response(serializer.data)

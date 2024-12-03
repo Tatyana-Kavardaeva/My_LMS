@@ -1,7 +1,7 @@
 from django.db import models
 
 from config import settings
-from materials.models import Course
+from materials.models import Course, Module, Lesson
 
 NULLABLE = {"blank": True, "null": True}
 
@@ -18,9 +18,11 @@ class Test(models.Model):
     description = models.TextField(verbose_name="Описание теста", **NULLABLE)
     completed_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата и время создания")
 
-    course = models.ForeignKey(Course, related_name="tests", on_delete=models.CASCADE, verbose_name="Курс")
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="tests", on_delete=models.SET_NULL, **NULLABLE,
-                              verbose_name='Владелец')
+    course = models.ForeignKey(Course, related_name="tests", on_delete=models.CASCADE, verbose_name="Курс", **NULLABLE)
+    module = models.ForeignKey(Module, related_name="tests", on_delete=models.CASCADE, verbose_name="Модуль", **NULLABLE)
+    lesson = models.ForeignKey(Lesson, related_name="tests", on_delete=models.CASCADE, verbose_name="Урок", **NULLABLE)
+
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="tests", on_delete=models.CASCADE, verbose_name='Владелец')
 
     def __str__(self):
         return f"Тест: {self.title}"
