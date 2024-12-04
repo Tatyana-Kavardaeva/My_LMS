@@ -1,5 +1,7 @@
+from django.contrib.auth.models import AnonymousUser
 from rest_framework import generics, viewsets
 from rest_framework.exceptions import PermissionDenied
+from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from materials.pagination import MyPagination
 from tests.models import Test, Question, Answer, StudentAnswer, TestResult
@@ -23,6 +25,9 @@ class CustomModelViewSet(viewsets.ModelViewSet):
         serializer.save(owner=self.request.user)
 
     def get_permissions(self):
+        if self.request.user.is_anonymous:
+            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
+
         if not self.request.user.role:
             raise PermissionDenied("У вас нет доступа к этому ресурсу.")
 
@@ -60,10 +65,16 @@ class StudentAnswerCreateAPIView(generics.CreateAPIView):
 
     queryset = StudentAnswer.objects.all()
     serializer_class = StudentAnswerSerializer
-    permission_classes = [IsStudent]
+    # permission_classes = [IsStudent]
 
     def perform_create(self, serializer):
         serializer.save(student=self.request.user)
+
+    def get_permissions(self):
+        if self.request.user.is_anonymous:
+            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
+        self.permission_classes = [IsStudent]
+        return super().get_permissions()
 
 
 class TestResultListCreateAPIView(generics.ListCreateAPIView):
@@ -73,6 +84,9 @@ class TestResultListCreateAPIView(generics.ListCreateAPIView):
     serializer_class = TestResultSerializer
 
     def get_permissions(self):
+        if self.request.user.is_anonymous:
+            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
+
         if not self.request.user.role:
             raise PermissionDenied("У вас нет доступа к этому ресурсу.")
 
@@ -112,6 +126,8 @@ class TestResultDetailAPIView(generics.RetrieveAPIView):
 
     def get_permissions(self):
         """ Определяет разрешения для GET-запроса в зависимости от роли пользователя. """
+        if self.request.user.is_anonymous:
+            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
 
         if self.request.method == 'GET':
             if self.request.user.role == "student":

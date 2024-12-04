@@ -95,7 +95,9 @@ class EnrollmentAPIView(GenericAPIView):
         return Response(serializer.data)
 
     def get_permissions(self):
-        # Проверяем, есть ли у пользователя роль
+        if self.request.user.is_anonymous:
+            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
+
         if not self.request.user.role:
             raise PermissionDenied("У вас нет доступа к этому ресурсу.")
 
