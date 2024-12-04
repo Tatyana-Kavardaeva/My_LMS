@@ -175,6 +175,7 @@ class ModuleTestCase(APITestCase):
                     "description": self.module.description,
                     "course": self.course.pk,
                     "owner": self.module.owner.pk,
+                    'lessons': [],
                     "count_lessons": 0
                 }
             ]
@@ -281,7 +282,7 @@ class EnrollmentTestCase(APITestCase):
         """ Проверяем зачисление на курс пользователя - студента. """
 
         self.client.force_authenticate(user=self.student)
-        url = reverse('materials:enrollment-create')
+        url = reverse('materials:enrollment')
         data = {'course': self.course.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
@@ -291,7 +292,7 @@ class EnrollmentTestCase(APITestCase):
         """ Проверяем зачисление на курс пользователя не являющегося студентом. """
 
         self.client.force_authenticate(user=self.user)
-        url = reverse('materials:enrollment-create')
+        url = reverse('materials:enrollment')
         data = {'course': self.course.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -301,7 +302,7 @@ class EnrollmentTestCase(APITestCase):
         """ Проверяем зачисление на курс преподавателя. """
 
         self.client.force_authenticate(user=self.teacher)
-        url = reverse('materials:enrollment-create')
+        url = reverse('materials:enrollment')
         data = {'course': self.course.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
@@ -314,7 +315,7 @@ class EnrollmentTestCase(APITestCase):
         self.enrollment = Enrollment(course=self.course, student=self.student)
         self.enrollment.save()
 
-        url = reverse('materials:enrollment-create')
+        url = reverse('materials:enrollment')
         data = {'course': self.course.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
