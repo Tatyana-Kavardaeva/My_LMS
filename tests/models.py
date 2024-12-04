@@ -16,13 +16,13 @@ SCORE = [
 class Test(models.Model):
     title = models.CharField(max_length=255, verbose_name="Название теста")
     description = models.TextField(verbose_name="Описание теста", **NULLABLE)
-    completed_at = models.DateTimeField(auto_now_add=True, verbose_name="Дата и время создания")
-
     course = models.ForeignKey(Course, related_name="tests", on_delete=models.CASCADE, verbose_name="Курс", **NULLABLE)
-    module = models.ForeignKey(Module, related_name="tests", on_delete=models.CASCADE, verbose_name="Модуль", **NULLABLE)
+    module = models.ForeignKey(Module, related_name="tests", on_delete=models.CASCADE, verbose_name="Модуль",
+                               **NULLABLE)
     lesson = models.ForeignKey(Lesson, related_name="tests", on_delete=models.CASCADE, verbose_name="Урок", **NULLABLE)
 
-    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="tests", on_delete=models.CASCADE, verbose_name='Владелец')
+    owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="tests", on_delete=models.CASCADE,
+                              verbose_name='Владелец')
 
     def __str__(self):
         return f"Тест: {self.title}"
@@ -30,15 +30,14 @@ class Test(models.Model):
     class Meta:
         verbose_name = "Тест"
         verbose_name_plural = "Тесты"
-        ordering = ['completed_at']
+        ordering = ['pk']
 
 
 class Question(models.Model):
     text = models.TextField(verbose_name="Текст вопроса")
-
     test = models.ForeignKey(Test, related_name="questions", on_delete=models.CASCADE, verbose_name="Тест")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='questions', on_delete=models.CASCADE,
-                                verbose_name="Владелец")
+                              verbose_name="Владелец")
 
     def __str__(self):
         return f"Вопрос: {self.text}"
@@ -52,7 +51,6 @@ class Question(models.Model):
 class Answer(models.Model):
     text = models.TextField(verbose_name="Текст ответа")
     is_correct = models.BooleanField(default=False, verbose_name="Правильный ответ")
-
     question = models.ForeignKey(Question, related_name="answers", on_delete=models.CASCADE)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="answers", on_delete=models.CASCADE,
                               verbose_name="Владелец")

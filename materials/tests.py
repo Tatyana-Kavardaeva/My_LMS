@@ -8,7 +8,6 @@ from users.models import User
 class CourseTestCase(APITestCase):
     def setUp(self):
         self.user = User.objects.create(email='user@example')
-        self.admin = User.objects.create(email='admin@example.com', role='admin')
         self.teacher = User.objects.create(email='teacher@example.com', role='teacher')
         self.teacher2 = User.objects.create(email='teacher2@example.com', role='teacher')
         self.student = User.objects.create(email='student@example.com', role='student')
@@ -19,9 +18,7 @@ class CourseTestCase(APITestCase):
 
         self.client.force_authenticate(user=self.teacher)
         url = reverse('materials:course-list')
-        data = {
-            'title': 'Test Course New',
-        }
+        data = {'title': 'Test Course New'}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Course.objects.all().count(), 2)
@@ -31,15 +28,13 @@ class CourseTestCase(APITestCase):
 
         self.client.force_authenticate(user=self.student)
         url = reverse('materials:course-list')
-        data = {
-            'title': 'Test Course Student',
-        }
+        data = {'title': 'Test Course Student'}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.json(), {'detail': 'У вас недостаточно прав для выполнения данного действия.'})
 
     def test_retrieve_course(self):
-        """ Проверяем просмотр информации о курсе владельцем курса. """
+        """ Проверяем просмотр информации о курсе преподавателем - владельцем курса. """
 
         self.client.force_authenticate(user=self.teacher)
         url = reverse('materials:course-detail', args={self.course.pk})
@@ -118,10 +113,7 @@ class ModuleTestCase(APITestCase):
 
         self.client.force_authenticate(user=self.teacher)
         url = reverse('materials:module-list')
-        data = {
-            'title': 'Test Module New',
-            'course': self.course.pk,
-        }
+        data = {'title': 'Test Module New', 'course': self.course.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Module.objects.all().count(), 2)
@@ -131,9 +123,7 @@ class ModuleTestCase(APITestCase):
 
         self.client.force_authenticate(user=self.student)
         url = reverse('materials:module-list')
-        data = {
-            'title': 'Test Module Student',
-        }
+        data = {'title': 'Test Module Student'}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.json(), {'detail': 'У вас недостаточно прав для выполнения данного действия.'})
@@ -203,29 +193,22 @@ class LessonTestCase(APITestCase):
         self.lesson = Lesson.objects.create(title='Test Lesson', description='Test Lesson', module=self.module,
                                             owner=self.teacher)
 
-
     def test_create_lesson_teacher(self):
         """ Проверяем создание урока преподавателем. """
 
         self.client.force_authenticate(user=self.teacher)
         url = reverse('materials:lesson-list')
-        data = {
-            'title': 'Test Lesson New',
-            'course': self.module.pk,
-        }
+        data = {'title': 'Test Lesson New', 'module': self.module.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(Lesson.objects.all().count(), 2)
-
 
     def test_lesson_module_student(self):
         """ Проверяем создание урока студентом. """
 
         self.client.force_authenticate(user=self.student)
         url = reverse('materials:lesson-list')
-        data = {
-            'title': 'Test Lesson Student',
-            }
+        data = {'title': 'Test Lesson Student', 'module': self.module.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.json(), {'detail': 'У вас недостаточно прав для выполнения данного действия.'})
@@ -287,7 +270,6 @@ class LessonTestCase(APITestCase):
 
 
 class EnrollmentTestCase(APITestCase):
-
     def setUp(self):
         self.user = User.objects.create(email='user@example.com')
         self.teacher = User.objects.create(email='teacher@example.com', role='teacher')
@@ -297,11 +279,10 @@ class EnrollmentTestCase(APITestCase):
 
     def test_create_enrollment(self):
         """ Проверяем зачисление на курс пользователя - студента. """
+
         self.client.force_authenticate(user=self.student)
         url = reverse('materials:enrollment-create')
-        data = {
-            'course': self.course.pk,
-        }
+        data = {'course': self.course.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertTrue(Enrollment.objects.filter(student=self.student, course=self.course).exists())
@@ -311,12 +292,20 @@ class EnrollmentTestCase(APITestCase):
 
         self.client.force_authenticate(user=self.user)
         url = reverse('materials:enrollment-create')
-        data = {
-            'course': self.course.pk,
-        }
+        data = {'course': self.course.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
         self.assertEqual(response.json(), {'detail': 'У вас нет доступа к этому ресурсу.'})
+
+    def test_create_enrollment_teacher(self):
+        """ Проверяем зачисление на курс преподавателя. """
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse('materials:enrollment-create')
+        data = {'course': self.course.pk}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json(), {'detail': 'У вас недостаточно прав для выполнения данного действия.'})
 
     def test_create_enrollment_delete(self):
         """ Проверяем отчисление студента с курса. """

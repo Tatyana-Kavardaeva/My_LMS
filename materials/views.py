@@ -1,8 +1,6 @@
-# from rest_framework import generics
 from rest_framework.exceptions import PermissionDenied
 from rest_framework.generics import get_object_or_404, GenericAPIView
 from rest_framework.response import Response
-# from rest_framework.views import APIView
 from materials.tasks import send_information_about_enrolling
 from materials.models import Course, Module, Lesson, Enrollment
 from materials.pagination import MyPagination
@@ -12,11 +10,14 @@ from users.permissions import IsStudent, IsAdmin, IsTeacher
 
 
 class CourseViewSet(CustomModelViewSet):
+    """ ViewSet для модели Course. """
+
     queryset = Course.objects.all()
     serializer_class = CourseSerializer
     pagination_class = MyPagination
 
     def get_queryset(self):
+        """ Возвращает список курсов в зависимости от роли пользователя. """
         user = self.request.user
         if user.role in ['admin', 'student']:
             return Course.objects.all()
@@ -24,11 +25,14 @@ class CourseViewSet(CustomModelViewSet):
 
 
 class ModuleViewSet(CustomModelViewSet):
+    """ ViewSet для модели Module. """
+
     queryset = Module.objects.all()
     serializer_class = ModuleSerializer
     pagination_class = MyPagination
 
     def get_queryset(self):
+        """ Возвращает список модулей в зависимости от роли пользователя. """
         user = self.request.user
         if user.role in ['admin', 'student']:
             return Module.objects.all()
@@ -36,11 +40,14 @@ class ModuleViewSet(CustomModelViewSet):
 
 
 class LessonViewSet(CustomModelViewSet):
+    """ ViewSet для модели Lesson. """
+
     queryset = Lesson.objects.all()
     serializer_class = LessonSerializer
     pagination_class = MyPagination
 
     def get_queryset(self):
+        """ Возвращает список уроков в зависимости от роли пользователя. """
         user = self.request.user
         if user.role in ['admin', 'student']:
             return Lesson.objects.all()
@@ -48,10 +55,13 @@ class LessonViewSet(CustomModelViewSet):
 
 
 class EnrollmentAPIView(GenericAPIView):
+    """ API для управления зачислением студентов на курсы. """
+
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
 
     def post(self, request, *args, **kwargs):
+        """ Обрабатывает запрос на запись или отчисление студента с курса. """
         user = request.user
         course_id = request.data.get('course')
         course_item = get_object_or_404(Course, pk=course_id)
@@ -65,12 +75,11 @@ class EnrollmentAPIView(GenericAPIView):
             send_information_about_enrolling.delay(course_item.title, user.first_name, user.email,
                                                    course_item.owner.email)
             message = 'Вы зачислены на курс'
-            print(course_item.owner.email)
-            print(user.email)
 
         return Response({"message": message})
 
     def get(self, request, *args, **kwargs):
+        """ Возвращает список зачислений в зависимости от роли пользователя """
         user = request.user
         if user.role == 'admin':
             queryset = Enrollment.objects.all()

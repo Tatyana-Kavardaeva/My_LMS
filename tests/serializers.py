@@ -13,7 +13,7 @@ class TestSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Test
-        fields = ('id', 'title', 'description', 'course', 'completed_at', 'owner', 'questions')
+        fields = ('id', 'title', 'description', 'course', 'owner', 'questions')
         read_only_fields = ('owner',)
         validators = [TitleValidator('title')]
 

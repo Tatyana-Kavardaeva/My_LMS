@@ -4,6 +4,7 @@ from users.models import User
 
 class AdminRequiredValidator:
     """ Ограничивает регистрацию пользователей с ролью 'администратор' """
+
     def __init__(self, field):
         self.field = field
 

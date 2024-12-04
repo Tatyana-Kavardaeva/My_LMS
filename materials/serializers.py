@@ -31,14 +31,14 @@ class CourseSerializer(serializers.ModelSerializer):
 
 class ModuleSerializer(serializers.ModelSerializer):
     count_lessons = serializers.SerializerMethodField(read_only=True)
-    # lessons = serializers.SerializerMethodField(read_only=True)
+    lessons = serializers.SerializerMethodField(read_only=True)
 
     def get_count_lessons(self, instance):
         return Lesson.objects.filter(module=instance).count()
 
-    # def get_lessons(self, instance):
-    #     modules = Lesson.objects.filter(module=instance)
-    #     return LessonSerializer(modules, many=True).data
+    def get_lessons(self, instance):
+        modules = Lesson.objects.filter(module=instance)
+        return LessonSerializer(modules, many=True).data
 
     class Meta:
         model = Module

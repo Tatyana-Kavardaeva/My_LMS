@@ -6,6 +6,8 @@ from users.validators import AdminRequiredValidator
 
 
 class UserSerializer(serializers.ModelSerializer):
+    """ Сериализатор, используемый для отображения информации о пользователе. """
+
     class Meta:
         model = User
         fields = ('id', 'email', 'first_name', 'last_name', 'role', 'phone', 'avatar')
@@ -13,6 +15,8 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
+    """ Сериализатор для регистрации нового пользователя. """
+
     password = serializers.CharField(write_only=True)
 
     class Meta:
@@ -22,19 +26,19 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
+    """
+    Кастомизированный сериализатор для получения пары токенов JWT (access и refresh) с дополнительной валидацией.
+    """
+
     def validate(self, attrs):
         email = attrs.get("email")
         password = attrs.get("password")
-
-        # Попробуем найти пользователя по email
         user = User.objects.filter(email=email).first()
 
         if user is None:
             raise serializers.ValidationError("Пользователь с таким email не найден.")
-
         if not user.check_password(password):
             raise serializers.ValidationError("Неверный пароль.")
-
         if not user.is_active:
             raise serializers.ValidationError("Пользователь не активен.")
 

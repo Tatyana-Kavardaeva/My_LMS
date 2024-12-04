@@ -12,5 +12,5 @@ router.register('modules', ModuleViewSet)
 router.register('lessons', LessonViewSet)
 
 urlpatterns = [
-    path('enrollment/', EnrollmentAPIView.as_view(), name='enrollment-create'),
-] + router.urls
+    path('enrollment/', EnrollmentAPIView.as_view(), name='enrollment'),
+              ] + router.urls
