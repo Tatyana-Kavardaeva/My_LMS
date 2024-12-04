@@ -8,7 +8,7 @@ def send_information_about_enrolling(course_title, student_name, student_email, 
     """ Отправляет информацию о зачислении студента на курс. """
 
     send_mail(
-        f"Информация о зачислении",
+        "Информация о зачислении",
         f"На Ваш курс {course_title} зачислен студент {student_name} - {student_email}.",
         settings.EMAIL_HOST_USER,
         [teacher_email],
