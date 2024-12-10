@@ -6,7 +6,7 @@ from users.validators import AdminRequiredValidator
 
 
 class UserSerializer(serializers.ModelSerializer):
-    """ Сериализатор, используемый для отображения информации о пользователе. """
+    """ Serializer, используемый для отображения информации о пользователе. """
 
     class Meta:
         model = User
@@ -15,7 +15,7 @@ class UserSerializer(serializers.ModelSerializer):
 
 
 class RegisterSerializer(serializers.ModelSerializer):
-    """ Сериализатор для регистрации нового пользователя. """
+    """ Serializer для регистрации пользователя. """
 
     password = serializers.CharField(write_only=True)
 
@@ -27,7 +27,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
 class CustomTokenObtainPairSerializer(TokenObtainPairSerializer):
     """
-    Кастомизированный сериализатор для получения пары токенов JWT (access и refresh) с дополнительной валидацией.
+    Кастомизированный serializer для получения пары токенов JWT (access и refresh) с дополнительной валидацией.
     """
 
     def validate(self, attrs):

@@ -13,7 +13,7 @@ class UserViewSet(viewsets.ModelViewSet):
     queryset = User.objects.all()
 
     def get_serializer_class(self):
-        """ Возвращает сериализатор для действия. """
+        """ Возвращает serializer для действия. """
         if self.action == 'create':
             return RegisterSerializer
         return UserSerializer
@@ -27,7 +27,7 @@ class UserViewSet(viewsets.ModelViewSet):
         user.save()
 
     def get_permissions(self):
-        """ Разрешения для разных действий """
+        """ Разрешения для разных действий. """
         if self.request.user.is_anonymous and self.action != 'create':
             raise PermissionDenied("У вас нет доступа к этому ресурсу.")
 
