@@ -86,44 +86,178 @@ class TestTestCase(APITestCase):
         response = self.client.get(url)
         data = response.json()
         result = {
-                    "count": 1,
-                    "next": None,
-                    "previous": None,
-                    "results": [
+            "count": 1,
+            "next": None,
+            "previous": None,
+            "results": [
+                {
+                    "id": self.test.pk,
+                    "title": self.test.title,
+                    "description": self.test.description,
+                    "course": self.test.course.pk,
+                    # "completed_at": self.test.completed_at,
+                    "owner": self.test.owner.pk,
+                    "questions": [
                         {
-                            "id": self.test.pk,
-                            "title": self.test.title,
-                            "description": self.test.description,
-                            "course": self.test.course.pk,
-                            # "completed_at": self.test.completed_at,
-                            "owner": self.test.owner.pk,
-                            "questions": [
+                            "id": self.question.pk,
+                            "text": self.question.text,
+                            "test": self.question.test.pk,
+                            "answers": [
                                 {
-                                    "id": self.question.pk,
-                                    "text": self.question.text,
-                                    "test": self.question.test.pk,
-                                    "answers": [
-                                        {
-                                            "pk": self.answer.pk,
-                                            "text": self.answer.text,
-                                            "is_correct": self.answer.is_correct,
-                                            "question": self.answer.question.pk,
-                                        },
-                                        {
-                                            "pk": self.answer2.pk,
-                                            "text": self.answer2.text,
-                                            "is_correct": self.answer2.is_correct,
-                                            "question": self.answer2.question.pk,
-                                        }
-                                    ]
-                                }
-                                    ]
+                                    "pk": self.answer.pk,
+                                    "text": self.answer.text,
+                                    "is_correct": self.answer.is_correct,
+                                    "question": self.answer.question.pk,
+                                },
+                                {
+                                    "pk": self.answer2.pk,
+                                    "text": self.answer2.text,
+                                    "is_correct": self.answer2.is_correct,
+                                    "question": self.answer2.question.pk,
                                 }
                             ]
                         }
+                    ]
+                }
+            ]
+        }
 
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(data, result)
+
+
+class QuestionTestCase(APITestCase):
+    def setUp(self):
+        self.user = User.objects.create(email='user@example')
+        self.teacher = User.objects.create(email='teacher@example.com', role='teacher')
+        self.student = User.objects.create(email='student@example.com', role='student')
+        self.course = Course.objects.create(title='Test Course', description='Test Course', owner=self.teacher)
+        self.test = Test.objects.create(title='Test', course=self.course, owner=self.teacher)
+        self.question = Question.objects.create(text='Test Question', test=self.test, owner=self.teacher)
+        self.answer = Answer.objects.create(text='Test Answer', question=self.question, owner=self.teacher)
+        self.answer2 = Answer.objects.create(text='Test Answer2', question=self.question, owner=self.teacher)
+        self.student_answer = StudentAnswer.objects.create(question=self.question, student=self.student,
+                                                           answer=self.answer)
+
+    def test_create_question_teacher(self):
+        """ Проверяем создание вопроса преподавателем. """
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse('tests:question-list')
+        data = {'text': 'Question New', 'test': self.test.pk}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Question.objects.all().count(), 2)
+
+    def test_create_question_student(self):
+        """ Проверяем создание вопроса студентом. """
+
+        self.client.force_authenticate(user=self.student)
+        url = reverse('tests:question-list')
+        data = {'text': 'Question New', 'test': self.test.pk}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        self.assertEqual(response.json(), {'detail': 'У вас недостаточно прав для выполнения данного действия.'})
+
+    def test_create_test_with_an_question_text(self):
+        """ Проверяем создание вопроса с невалидным текстом. """
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse('tests:question-list')
+        data = {'text': 'Крипта', 'test': self.test.pk}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'non_field_errors': ['Использованы запрещенные слова']})
+
+    def test_retrieve_question(self):
+        """ Проверяем просмотр информации о вопросе преподавателем. """
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse('tests:question-detail', args={self.question.pk})
+        response = self.client.get(url)
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(response.data['text'], 'Test Question')
+
+    def test_question_update(self):
+        """ Проверяем обновление вопроса преподавателем. """
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse('tests:question-detail', args=(self.question.pk,))
+        data = {'text': 'Question Update'}
+        response = self.client.patch(url, data)
+        data = response.json()
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(data.get('text'), 'Question Update')
+
+    def test_question_delete(self):
+        """ Проверяем удаление вопроса преподавателем. """
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse('tests:question-detail', args=(self.question.pk,))
+        response = self.client.delete(url)
+        self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+        self.assertEqual(Question.objects.all().count(), 0)
+
+
+class AnswerTestCase(APITestCase):
+
+    def setUp(self):
+        self.teacher = User.objects.create(email='teacher@example.com', role='teacher')
+        self.student = User.objects.create(email='student@example.com', role='student')
+        self.course = Course.objects.create(title='Test Course', description='Test Course', owner=self.teacher)
+        self.test = Test.objects.create(title='Test', course=self.course, owner=self.teacher)
+        self.question = Question.objects.create(text='Test Question', test=self.test, owner=self.teacher)
+        self.answer = Answer.objects.create(text='Test Answer', question=self.question, owner=self.teacher,
+                                            is_correct=True)
+
+    def test_create_answer_as_teacher(self):
+        """ Проверяем создание ответа преподавателем. """
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse('tests:answer-list')
+        data = {'text': 'Answer New', 'question': self.question.pk, 'is_correct': False}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(Answer.objects.all().count(), 2)
+
+    def test_create_test_with_an_answer_text(self):
+        """ Проверяем создание ответа с невалидным текстом. """
+
+        self.client.force_authenticate(user=self.teacher)
+        url = reverse('tests:answer-list')
+        data = {'text': 'Крипта', 'question': self.test.pk}
+        response = self.client.post(url, data)
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(response.json(), {'non_field_errors': ['Использованы запрещенные слова']})
+
+    # def test_retrieve_question(self):
+    #     """ Проверяем просмотр информации о вопросе преподавателем. """
+    #
+    #     self.client.force_authenticate(user=self.teacher)
+    #     url = reverse('tests:question-detail', args={self.question.pk})
+    #     response = self.client.get(url)
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertEqual(response.data['text'], 'Test Question')
+    #
+    # def test_question_update(self):
+    #     """ Проверяем обновление вопроса преподавателем. """
+    #
+    #     self.client.force_authenticate(user=self.teacher)
+    #     url = reverse('tests:question-detail', args=(self.question.pk,))
+    #     data = {'text': 'Question Update'}
+    #     response = self.client.patch(url, data)
+    #     data = response.json()
+    #     self.assertEqual(response.status_code, status.HTTP_200_OK)
+    #     self.assertEqual(data.get('text'), 'Question Update')
+    #
+    # def test_question_delete(self):
+    #     """ Проверяем удаление вопроса преподавателем. """
+    #
+    #     self.client.force_authenticate(user=self.teacher)
+    #     url = reverse('tests:question-detail', args=(self.question.pk,))
+    #     response = self.client.delete(url)
+    #     self.assertEqual(response.status_code, status.HTTP_204_NO_CONTENT)
+    #     self.assertEqual(Question.objects.all().count(), 0)
 
 
 class StudentAnswerTestCase(APITestCase):
@@ -175,7 +309,7 @@ class TestResultTestCase(APITestCase):
         """ Проверяем создание результата тестирования студентом. """
         self.client.force_authenticate(user=self.student)
         url = reverse('tests:results')
-        data = {'test': self.question.pk}
+        data = {'test': self.test.pk}
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
 

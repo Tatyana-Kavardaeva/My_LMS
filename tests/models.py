@@ -14,6 +14,8 @@ SCORE = [
 
 
 class Test(models.Model):
+    """ Модель теста. """
+
     title = models.CharField(max_length=255, verbose_name="Название теста")
     description = models.TextField(verbose_name="Описание теста", **NULLABLE)
     course = models.ForeignKey(Course, related_name="tests", on_delete=models.CASCADE, verbose_name="Курс", **NULLABLE)
@@ -34,6 +36,8 @@ class Test(models.Model):
 
 
 class Question(models.Model):
+    """ Модель вопроса. """
+
     text = models.TextField(verbose_name="Текст вопроса")
     test = models.ForeignKey(Test, related_name="questions", on_delete=models.CASCADE, verbose_name="Тест")
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name='questions', on_delete=models.CASCADE,
@@ -49,6 +53,8 @@ class Question(models.Model):
 
 
 class Answer(models.Model):
+    """ Модель ответа на вопрос в тесте """
+
     text = models.TextField(verbose_name="Текст ответа")
     is_correct = models.BooleanField(default=False, verbose_name="Правильный ответ")
     question = models.ForeignKey(Question, related_name="answers", on_delete=models.CASCADE)
@@ -64,6 +70,8 @@ class Answer(models.Model):
 
 
 class StudentAnswer(models.Model):
+    """ Модель ответа студента на вопрос в тесте. """
+
     student = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="student_answers", on_delete=models.CASCADE)
     question = models.ForeignKey(Question, related_name="student_answers", on_delete=models.CASCADE)
     answer = models.ForeignKey(Answer, related_name="student_answers", on_delete=models.CASCADE)
@@ -77,6 +85,8 @@ class StudentAnswer(models.Model):
 
 
 class TestResult(models.Model):
+    """ Модель результата тестирования. """
+
     student = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="results", on_delete=models.CASCADE,
                                 verbose_name="Студент")
     test = models.ForeignKey(Test, related_name="results", on_delete=models.CASCADE)

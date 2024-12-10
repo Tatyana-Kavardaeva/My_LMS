@@ -5,7 +5,7 @@ from tests.models import Test, Question, Answer, StudentAnswer, TestResult
 
 @admin.register(Test)
 class TestAdmin(admin.ModelAdmin):
-    list_display = ('id', 'title', 'course')
+    list_display = ('id', 'title', 'course', 'module', 'lesson')
 
 
 @admin.register(Question)

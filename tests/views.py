@@ -1,14 +1,12 @@
-from django.contrib.auth.models import AnonymousUser
 from rest_framework import generics, viewsets
 from rest_framework.exceptions import PermissionDenied
-from rest_framework.permissions import IsAuthenticated, AllowAny
 from rest_framework.response import Response
 from materials.pagination import MyPagination
 from tests.models import Test, Question, Answer, StudentAnswer, TestResult
 from tests.serializers import TestSerializer, QuestionSerializer, AnswerSerializer, StudentAnswerSerializer, \
     TestResultSerializer
 from users.permissions import IsAdmin, IsTeacher, IsStudent
-from tests.servicees import calculate_score
+from tests.services import calculate_score
 
 
 class CustomModelViewSet(viewsets.ModelViewSet):
@@ -61,11 +59,10 @@ class AnswerViewSet(CustomModelViewSet):
 
 
 class StudentAnswerCreateAPIView(generics.CreateAPIView):
-    """ API для создания ответов студентов на вопросы. """
+    """ Endpoint для создания ответов студентов на вопросы. """
 
     queryset = StudentAnswer.objects.all()
     serializer_class = StudentAnswerSerializer
-    # permission_classes = [IsStudent]
 
     def perform_create(self, serializer):
         serializer.save(student=self.request.user)
@@ -78,7 +75,7 @@ class StudentAnswerCreateAPIView(generics.CreateAPIView):
 
 
 class TestResultListCreateAPIView(generics.ListCreateAPIView):
-    """ API для получения списка результатов тестов и их создания. """
+    """ Endpoint для получения списка результатов тестов и их создания. """
 
     queryset = TestResult.objects.all()
     serializer_class = TestResultSerializer
@@ -93,12 +90,7 @@ class TestResultListCreateAPIView(generics.ListCreateAPIView):
         if self.request.method == 'POST':
             self.permission_classes = [IsStudent]
         elif self.request.method == 'GET':
-            if self.request.user.role == "student":
-                self.permission_classes = [IsStudent]
-            elif self.request.user.role == "admin":
-                self.permission_classes = [IsAdmin]
-            elif self.request.user.role == "teacher":
-                self.permission_classes = [IsTeacher]
+            self.permission_classes = [IsStudent | IsTeacher | IsAdmin]
 
         return super().get_permissions()
 
@@ -119,25 +111,17 @@ class TestResultListCreateAPIView(generics.ListCreateAPIView):
 
 
 class TestResultDetailAPIView(generics.RetrieveAPIView):
-    """API для получения подробной информации о результатах тестов."""
+    """Endpoint для получения подробной информации о результатах тестов."""
 
     queryset = TestResult.objects.all()
     serializer_class = TestResultSerializer
 
     def get_permissions(self):
         """ Определяет разрешения для GET-запроса в зависимости от роли пользователя. """
-        if self.request.user.is_anonymous:
-            raise PermissionDenied("У вас нет доступа к этому ресурсу.")
-
         if self.request.method == 'GET':
-            if self.request.user.role == "student":
-                self.permission_classes = [IsStudent]
-            elif self.request.user.role == "admin":
-                self.permission_classes = [IsAdmin]
-            elif self.request.user.role == "teacher":
-                self.permission_classes = [IsTeacher]
-            else:
-                raise PermissionDenied("У вас нет прав для доступа к этому ресурсу.")
+            self.permission_classes = [IsStudent | IsTeacher | IsAdmin]
+        else:
+            raise PermissionDenied("У вас нет прав для доступа к этому ресурсу.")
 
         return super().get_permissions()
 

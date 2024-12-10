@@ -6,6 +6,8 @@ NULLABLE = {"blank": True, "null": True}
 
 
 class Course(models.Model):
+    """ Модель курса. """
+
     title = models.CharField(max_length=100, verbose_name="Курс")
     description = models.TextField(verbose_name="Описание", **NULLABLE)
     owner = models.ForeignKey(settings.AUTH_USER_MODEL, related_name="courses", on_delete=models.SET_NULL, **NULLABLE,
@@ -21,6 +23,8 @@ class Course(models.Model):
 
 
 class Module(models.Model):
+    """ Модель модуля. """
+
     title = models.CharField(max_length=100, verbose_name="Модуль")
     description = models.TextField(verbose_name="Описание", **NULLABLE)
     course = models.ForeignKey(Course, related_name="modules", on_delete=models.CASCADE, verbose_name="Курс")
@@ -37,6 +41,8 @@ class Module(models.Model):
 
 
 class Lesson(models.Model):
+    """ Модель урока. """
+
     title = models.CharField(max_length=100, verbose_name="Урок")
     description = models.TextField(verbose_name="Описание", blank=True, null=True)
     image = models.ImageField(upload_to="media/course", verbose_name="Изображение", blank=True, null=True)
@@ -56,6 +62,8 @@ class Lesson(models.Model):
 
 
 class Enrollment(models.Model):
+    """ Модель зачисления на курс. """
+
     student = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, verbose_name="Студент")
     course = models.ForeignKey(Course, on_delete=models.CASCADE, verbose_name="Курс")
 

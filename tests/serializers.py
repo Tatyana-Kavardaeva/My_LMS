@@ -5,6 +5,8 @@ from .models import Test, Question, Answer, TestResult, StudentAnswer
 
 
 class TestSerializer(serializers.ModelSerializer):
+    """ Serializer для модели Test. """
+
     questions = serializers.SerializerMethodField(read_only=True)
 
     def get_questions(self, instance):
@@ -19,6 +21,8 @@ class TestSerializer(serializers.ModelSerializer):
 
 
 class QuestionSerializer(serializers.ModelSerializer):
+    """ Serializer для модели Question. """
+
     answers = serializers.SerializerMethodField(read_only=True)
 
     def get_answers(self, instance):
@@ -33,6 +37,8 @@ class QuestionSerializer(serializers.ModelSerializer):
 
 
 class AnswerSerializer(serializers.ModelSerializer):
+    """ Serializer для модели Answer. """
+
     class Meta:
         model = Answer
         fields = ('pk', 'text', 'is_correct', 'question')
@@ -41,6 +47,8 @@ class AnswerSerializer(serializers.ModelSerializer):
 
 
 class StudentAnswerSerializer(serializers.ModelSerializer):
+    """ Serializer для модели StudentAnswer. """
+
     is_correct = serializers.SerializerMethodField(read_only=True)
 
     def get_is_correct(self, instance):
@@ -53,6 +61,8 @@ class StudentAnswerSerializer(serializers.ModelSerializer):
 
 
 class TestResultSerializer(serializers.ModelSerializer):
+    """ Serializer для модели TestResult. """
+
     student_answers = serializers.SerializerMethodField(read_only=True)
 
     def get_student_answers(self, instance):

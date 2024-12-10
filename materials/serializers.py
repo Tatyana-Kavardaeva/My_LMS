@@ -4,18 +4,23 @@ from materials.validators import TitleValidator
 
 
 class CourseSerializer(serializers.ModelSerializer):
+    """ Serializer для модели Course. """
+
     count_modules = serializers.SerializerMethodField(read_only=True)
     modules = serializers.SerializerMethodField(read_only=True)
     is_enrolled = serializers.SerializerMethodField(read_only=True)
 
     def get_count_modules(self, instance):
+        """ Получаем количество модулей в курсе. """
         return Module.objects.filter(course=instance).count()
 
     def get_modules(self, instance):
+        """ Получаем список модулей курса. """
         modules = Module.objects.filter(course=instance)
         return ModuleSerializer(modules, many=True).data
 
     def get_is_enrolled(self, instance):
+        """ Получаем статус зачисления на курс. """
         user = self.context['request'].user
         return Enrollment.objects.filter(student=user, course=instance).exists()
 
@@ -30,13 +35,17 @@ class CourseSerializer(serializers.ModelSerializer):
 
 
 class ModuleSerializer(serializers.ModelSerializer):
+    """ Serializer для модели Module. """
+
     count_lessons = serializers.SerializerMethodField(read_only=True)
     lessons = serializers.SerializerMethodField(read_only=True)
 
     def get_count_lessons(self, instance):
+        """ Получаем количество уроков. """
         return Lesson.objects.filter(module=instance).count()
 
     def get_lessons(self, instance):
+        """ Получаем список уроков. """
         modules = Lesson.objects.filter(module=instance)
         return LessonSerializer(modules, many=True).data
 
@@ -48,6 +57,8 @@ class ModuleSerializer(serializers.ModelSerializer):
 
 
 class LessonSerializer(serializers.ModelSerializer):
+    """ Serializer для модели Lesson. """
+
     class Meta:
         model = Lesson
         fields = '__all__'
@@ -56,6 +67,8 @@ class LessonSerializer(serializers.ModelSerializer):
 
 
 class EnrollmentSerializer(serializers.ModelSerializer):
+    """ Serializer для модели Enrollment. """
+
     class Meta:
         model = Enrollment
         fields = '__all__'

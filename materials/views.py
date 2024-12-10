@@ -18,6 +18,7 @@ class CourseViewSet(CustomModelViewSet):
 
     def get_queryset(self):
         """ Возвращает список курсов в зависимости от роли пользователя. """
+
         user = self.request.user
         if user.role in ['admin', 'student']:
             return Course.objects.all()
@@ -55,7 +56,7 @@ class LessonViewSet(CustomModelViewSet):
 
 
 class EnrollmentAPIView(GenericAPIView):
-    """ API для управления зачислением студентов на курсы. """
+    """ Endpoint для управления зачислением студентов на курсы. """
 
     queryset = Enrollment.objects.all()
     serializer_class = EnrollmentSerializer
@@ -72,7 +73,7 @@ class EnrollmentAPIView(GenericAPIView):
             message = 'Вы отчислились с курса'
         else:
             Enrollment.objects.create(student=user, course=course_item)
-            send_information_about_enrolling.delay(course_item.title, user.first_name, user.email,
+            send_information_about_enrolling.delay(course_item.title, user.first_name, user.last_name, user.email,
                                                    course_item.owner.email)
             message = 'Вы зачислены на курс'
 
